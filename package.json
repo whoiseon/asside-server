@@ -1,0 +1,27 @@
+{
+  "name": "asside-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start:dev": "ts-node-dev --pretty --transpile-only ./src/app.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@types/koa-logger": "^3.1.2",
+    "dotenv": "^16.0.3",
+    "koa": "^2.14.2",
+    "koa-bodyparser": "^4.4.0",
+    "koa-logger": "^3.2.1",
+    "koa-router": "^12.0.0",
+    "prettier": "^2.8.7"
+  },
+  "devDependencies": {
+    "@types/koa": "^2.13.6",
+    "@types/koa-bodyparser": "^4.3.10",
+    "@types/koa-router": "^7.4.4",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.4"
+  }
+}
