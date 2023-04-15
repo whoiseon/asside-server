@@ -1,0 +1,214 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  email        String       @unique
+  passwordHash String
+  username     String?      @unique
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  Token        Token[]      @relation("UserTokens")
+
+  teams        Team[]       @relation("TeamMembers")
+  teamsAsManager Team[]     @relation("TeamManagers")
+  teamsAsLeader Team[]      @relation("TeamLeader")
+
+  projects     Project[]    @relation("ProjectMembers")
+  projectsAsManager Project[] @relation("ProjectManagers")
+  projectAsLeader Project[] @relation("ProjectLeader")
+
+  studyGroups  StudyGroup[] @relation("StudyGroupMembers")
+  studyGroupsAsManager StudyGroup[] @relation("StudyGroupManagers")
+  studyGroupAsLeader StudyGroup[] @relation("StudyGroupLeader")
+
+  recruitments Recruitment[] @relation("UserRecruitments")
+
+  comments     Comment[]    @relation("UserComments")
+  groups       Group[]      @relation("GroupMembers")
+}
+
+model Token {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  rotationCounter Int @default(1)
+  createdAt DateTime @default(now())
+  blocked  Boolean  @default(false)
+
+  user      User      @relation("UserTokens", fields: [userId], references: [id])
+}
+
+model Team {
+  id        Int        @id @default(autoincrement())
+  name      String
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  leaderId  Int
+
+  leader    User       @relation("TeamLeader", fields: [leaderId], references: [id])
+  members   User[]     @relation("TeamMembers")
+  managers  User[]     @relation("TeamManagers")
+
+  projects  Project[]  @relation("TeamProjects")
+  studyGroups StudyGroup[] @relation("TeamStudyGroups")
+  schedules Schedule[] @relation("TeamSchedules")
+  groups    Group[]    @relation("TeamGroups")
+}
+
+model Group {
+  id        Int        @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  teamId    Int
+
+  team      Team       @relation("TeamGroups", fields: [teamId], references: [id])
+  members   User[]     @relation("GroupMembers")
+}
+
+model Project {
+  id        Int      @id @default(autoincrement())
+  name      String
+  thumbnail String?
+  body      String
+  public    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  teamId    Int
+  leaderId  Int
+  recruitmentId Int?
+
+  techStack TeckStack[]
+  leader    User       @relation("ProjectLeader", fields: [leaderId], references: [id])
+  team      Team       @relation("TeamProjects", fields: [teamId], references: [id])
+  members   User[]     @relation("ProjectMembers")
+  managers  User[]     @relation("ProjectManagers")
+  schedules Schedule[] @relation("ProjectSchedules")
+  recruitment Recruitment[] @relation("ProjectRecruitments")
+}
+
+model StudyGroup {
+  id        Int      @id @default(autoincrement())
+  name      String
+  thumbnail String?
+  body      String
+  public    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  teamId    Int
+  leaderId  Int
+  recruitmentId Int?
+
+  techStack TeckStack[]
+  leader    User       @relation("StudyGroupLeader", fields: [leaderId], references: [id])
+  team      Team       @relation("TeamStudyGroups", fields: [teamId], references: [id])
+  members   User[]     @relation("StudyGroupMembers")
+  managers  User[]     @relation("StudyGroupManagers")
+  schedules Schedule[] @relation("StudyGroupSchedules")
+  recruitment Recruitment[] @relation("StudyGroupRecruitments")
+}
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  title     String
+  date      DateTime
+  body      String
+  public    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  teamId    Int
+  projectId Int?
+  studyGroupId Int?
+
+  comments  Comment[] @relation("ScheduleComments")
+  team      Team      @relation("TeamSchedules", fields: [teamId], references: [id])
+  project   Project?   @relation("ProjectSchedules", fields: [projectId], references: [id])
+  studyGroup StudyGroup?   @relation("StudyGroupSchedules", fields: [studyGroupId], references: [id])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  deletedAt DateTime?
+
+  subCommentCount Int @default(0)
+
+  userId    Int
+  scheduleId Int?
+  recruitmentId Int?
+  parentCommentId Int?
+
+  schedule  Schedule? @relation("ScheduleComments", fields: [scheduleId], references: [id])
+  recruitment Recruitment? @relation("RecruitmentComments", fields: [recruitmentId], references: [id])
+  user      User     @relation("UserComments", fields: [userId], references: [id])
+
+  @@index(deletedAt)
+  @@index(createdAt)
+  @@index(parentCommentId)
+}
+
+model Recruitment {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  thumbnail String?
+  body      String
+  maxMember Int
+  public    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  projectId Int?
+  studyGroupId Int?
+
+  user      User     @relation("UserRecruitments", fields: [userId], references: [id])
+  techStack TeckStack[]
+  recruitmentLikes RecruitmentLike[] @relation("RecruitmentLikes")
+  comments  Comment[] @relation("RecruitmentComments")
+  project   Project?   @relation("ProjectRecruitments", fields: [projectId], references: [id])
+  studyGroup StudyGroup?   @relation("StudyGroupRecruitments", fields: [studyGroupId], references: [id])
+
+  @@index([createdAt(sort: Desc)])
+}
+
+model RecruitmentLike {
+  id       Int      @id @default(autoincrement())
+  recruitmentId Int
+  userId   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  recruitment Recruitment @relation("RecruitmentLikes", fields: [recruitmentId], references: [id])
+
+  @@unique([recruitmentId, userId])
+  @@index(recruitmentId)
+}
+
+model TeckStack {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  project   Project[]
+  studyGroup StudyGroup[]
+  recruitment Recruitment[]
+}
