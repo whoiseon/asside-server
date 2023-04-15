@@ -10,7 +10,6 @@ const port: number = 4000;
 
 app.use(logger());
 app.use(bodyParser());
-
 app.use(routes.routes()).use(routes.allowedMethods());
 
 app.listen(port, () => {
