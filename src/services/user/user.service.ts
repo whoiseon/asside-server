@@ -1,7 +1,9 @@
-import { RegisterParams } from 'src/services/user/user.type';
+import { LoginParams, RegisterParams } from 'src/services/user/user.type';
 import db from 'src/lib/database';
 import bcrypt from 'bcrypt';
 import { Context } from 'koa';
+import { generateToken } from 'src/lib/tokens';
+import { User } from '@prisma/client';
 
 class UserService {
   private static instance: UserService;
@@ -14,6 +16,29 @@ class UserService {
   }
 
   static SALT_ROUNDS: number = 10;
+
+  async generateTokens(user: User) {
+    const { id: userId, email, username } = user;
+    const [accessToken, refreshToken] = await Promise.all([
+      generateToken({
+        type: 'access_token',
+        userId,
+        tokenId: 1,
+        email,
+        username,
+      }),
+      generateToken({
+        type: 'refresh_token',
+        tokenId: 1,
+        rotationCounter: 0,
+      }),
+    ]);
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
 
   async register(ctx: Context, params: RegisterParams) {
     const { username, email, password } = params;
@@ -39,8 +64,31 @@ class UserService {
     return { createdUser };
   }
 
-  login() {
-    return 'logged in!';
+  async login(ctx: Context, params: LoginParams) {
+    const { email, password } = params;
+    const user = await db.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      ctx.throw(401, 'AuthenticationError');
+    }
+
+    const { passwordHash, ...userInfo } = user;
+    const isPasswordCorrect = await bcrypt.compare(password, passwordHash);
+
+    if (!isPasswordCorrect) {
+      ctx.throw(401, 'AuthenticationError');
+    }
+
+    const tokens = await this.generateTokens(user);
+
+    return {
+      user: userInfo,
+      tokens,
+    };
   }
 }
 
