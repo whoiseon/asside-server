@@ -1,4 +1,6 @@
 import jwt from 'jsonwebtoken';
+import { User } from '@prisma/client';
+import { Context } from 'koa';
 
 const JWT_TOKEN_SECRET = process.env.JWT_TOKEN_SECRET ?? 'DevSecretKey';
 
@@ -31,6 +33,29 @@ export function generateToken(payload: TokenPayload) {
   });
 }
 
+export async function generateTokens(user: User) {
+  const { id: userId, email, username } = user;
+  const [accessToken, refreshToken] = await Promise.all([
+    generateToken({
+      type: 'access_token',
+      userId,
+      tokenId: 1,
+      email,
+      username,
+    }),
+    generateToken({
+      type: 'refresh_token',
+      tokenId: 1,
+      rotationCounter: 0,
+    }),
+  ]);
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+}
+
 export function validateToken<T>(token: string) {
   return new Promise<DecodedToken<T>>((resolve, reject) => {
     jwt.verify(token, JWT_TOKEN_SECRET, (err, decoded) => {
@@ -39,6 +64,29 @@ export function validateToken<T>(token: string) {
       }
       resolve(decoded as DecodedToken<T>);
     });
+  });
+}
+
+export function setTokenCookie(ctx: Context, tokens: Tokens) {
+  const { accessToken, refreshToken } = tokens;
+  ctx.cookies.set('access_token', accessToken, {
+    maxAge: 1000 * 60 * 60,
+    path: '/',
+  });
+  ctx.cookies.set('refresh_token', refreshToken, {
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    path: '/',
+  });
+}
+
+export function resetTokenCookie(ctx: Context) {
+  ctx.cookies.set('access_token', '', {
+    maxAge: 0,
+    path: '/',
+  });
+  ctx.cookies.set('refresh_token', '', {
+    maxAge: 0,
+    path: '/',
   });
 }
 
@@ -55,6 +103,11 @@ export interface RefreshTokenPayload {
   tokenId: number;
   rotationCounter: number;
 }
+
+export type Tokens = {
+  accessToken: string;
+  refreshToken: string;
+};
 
 type TokenPayload = AccessTokenPayload | RefreshTokenPayload;
 
