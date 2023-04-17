@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { User } from '@prisma/client';
 import { Context } from 'koa';
+import db from 'src/lib/database';
 
 const JWT_TOKEN_SECRET = process.env.JWT_TOKEN_SECRET ?? 'DevSecretKey';
 
@@ -79,6 +80,17 @@ export function setTokenCookie(ctx: Context, tokens: Tokens) {
   });
 }
 
+// export async function refresh(ctx: Context, refreshToken: string) {
+//   try {
+//     const decoded = await validateToken<RefreshTokenPayload>(refreshToken);
+//     const user = await db.user.findUnique({
+//       where: {
+//         id: decoded.
+//       }
+//     })
+//   }
+// }
+
 export function resetTokenCookie(ctx: Context) {
   ctx.cookies.set('access_token', '', {
     maxAge: 0,
@@ -90,7 +102,7 @@ export function resetTokenCookie(ctx: Context) {
   });
 }
 
-interface AccessTokenPayload {
+export interface AccessTokenPayload {
   type: 'access_token';
   userId: number;
   tokenId: number;

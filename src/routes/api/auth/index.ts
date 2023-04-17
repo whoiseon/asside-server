@@ -1,6 +1,5 @@
 import Router from '@koa/router';
 import { LoginParams, RegisterParams } from './types';
-import { Context } from 'koa';
 import { generateTokens, Tokens } from 'src/lib/tokens';
 import db from 'src/lib/database';
 import bcrypt from 'bcrypt';
