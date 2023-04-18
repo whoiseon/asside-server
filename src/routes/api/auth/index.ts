@@ -1,6 +1,6 @@
 import Router from '@koa/router';
 import { LoginParams, RegisterParams } from './types';
-import { generateTokens, Tokens } from 'src/lib/tokens';
+import { generateTokens, setTokenCookie, Tokens } from 'src/lib/tokens';
 import db from 'src/lib/database';
 import bcrypt from 'bcrypt';
 
@@ -40,6 +40,7 @@ auth.post('/login/local', async ctx => {
   }
 
   const tokens = await generateTokens(user);
+  setTokenCookie(ctx, tokens);
 
   ctx.body = {
     user: {

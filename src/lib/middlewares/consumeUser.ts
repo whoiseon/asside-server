@@ -34,7 +34,6 @@ export const consumeUser: Middleware = async (ctx: Context, next: Next) => {
   } catch (e: any) {
     if (e instanceof JsonWebTokenError) {
       if (e.name === 'TokenExpiredError') {
-        console.log('hello');
         ctx.state.isExpiredToken = true;
       }
     }
