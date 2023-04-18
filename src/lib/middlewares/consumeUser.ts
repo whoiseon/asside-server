@@ -1,24 +1,48 @@
 import { Context, Middleware, Next } from 'koa';
 import { AccessTokenPayload, validateToken } from 'src/lib/tokens';
+import { JsonWebTokenError } from 'jsonwebtoken';
 
 export const consumeUser: Middleware = async (ctx: Context, next: Next) => {
-  if (ctx.path.includes('/auth/logout')) return next(); // skip this middleware for logout route
-  console.log(ctx.path);
-  ctx.state.user = {
-    id: 1,
-    username: 'test',
-    email: 'waeifawef@naver.com',
-  };
+  ctx.state.isExpiredToken = false;
+  if (ctx.path.includes('/auth/logout') || ctx.path.includes('/auth/register')) return next(); // skip this middleware for logout route
+
+  let accessToken: string | undefined = ctx.cookies.get('access_token');
+  const refreshToken: string | undefined = ctx.cookies.get('refresh_token');
+
+  const { authorization } = ctx.request.headers;
+
+  if (!accessToken && authorization) {
+    accessToken = authorization.split(' ')[1];
+  }
+
+  try {
+    if (!accessToken) {
+      ctx.status = 401;
+      ctx.body = {
+        statusCode: 401,
+        message: 'Unauthorized',
+        name: 'UnauthorizedError',
+      };
+      return;
+    }
+    const accessTokenData = await validateToken<AccessTokenPayload>(accessToken);
+    ctx.state.user = {
+      id: accessTokenData.userId,
+      username: accessTokenData.username,
+      email: accessTokenData.email,
+    };
+  } catch (e: any) {
+    if (e instanceof JsonWebTokenError) {
+      if (e.name === 'TokenExpiredError') {
+        console.log('hello');
+        ctx.state.isExpiredToken = true;
+      }
+    }
+    if (!refreshToken) return next();
+  }
+
   return next();
-  // let accessToken: string | undefined = ctx.cookies.get('access_token');
-  // const refreshToken: string | undefined = ctx.cookies.get('refresh_token');
-  //
-  // const { authorization } = ctx.request.headers;
-  //
-  // if (!accessToken && authorization) {
-  //   accessToken = authorization.split(' ')[1];
-  // }
-  //
+
   // try {
   //   if (!accessToken) {
   //     throw new Error('NoAccessToken');
