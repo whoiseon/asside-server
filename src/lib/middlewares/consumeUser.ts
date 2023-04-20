@@ -2,7 +2,7 @@ import { Context, Middleware, Next } from 'koa';
 import { AccessTokenPayload, validateToken } from 'src/lib/tokens';
 import { JsonWebTokenError } from 'jsonwebtoken';
 
-export const consumeUser: Middleware = async (ctx: Context, next: Next) => {
+const consumeUser: Middleware = async (ctx: Context, next: Next) => {
   ctx.state.isExpiredToken = false;
   if (ctx.path.includes('/auth/logout') || ctx.path.includes('/auth/register')) return next(); // skip this middleware for logout route
 
@@ -17,13 +17,7 @@ export const consumeUser: Middleware = async (ctx: Context, next: Next) => {
 
   try {
     if (!accessToken) {
-      ctx.status = 401;
-      ctx.body = {
-        statusCode: 401,
-        message: 'Unauthorized',
-        name: 'UnauthorizedError',
-      };
-      return;
+      return next();
     }
     const accessTokenData = await validateToken<AccessTokenPayload>(accessToken);
     ctx.state.user = {
@@ -56,3 +50,5 @@ export const consumeUser: Middleware = async (ctx: Context, next: Next) => {
   //   }
   // }
 };
+
+export default consumeUser;

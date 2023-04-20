@@ -4,7 +4,7 @@ import routes from './routes';
 import logger from 'koa-logger';
 import dotenv from 'dotenv';
 import errorHandler from 'src/lib/middlewares/errorHandler';
-import { consumeUser } from 'src/lib/middlewares/consumeUser';
+import consumeUser from 'src/lib/middlewares/consumeUser';
 dotenv.config();
 
 const app = new Koa();

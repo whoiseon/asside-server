@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { User } from '@prisma/client';
+import { Token, User } from '@prisma/client';
 import { Context } from 'koa';
 import db from 'src/lib/database';
 
@@ -34,20 +34,31 @@ export function generateToken(payload: TokenPayload) {
   });
 }
 
-export async function generateTokens(user: User) {
+export async function createTokenItem(userId: number) {
+  const token = await db.token.create({
+    data: {
+      userId,
+    },
+  });
+  return token;
+}
+
+export async function generateTokens(user: User, tokenItem?: Token) {
   const { id: userId, email, username } = user;
+  const token = tokenItem ?? (await createTokenItem(userId));
+  const tokenId = token.id;
   const [accessToken, refreshToken] = await Promise.all([
     generateToken({
       type: 'access_token',
       userId,
-      tokenId: 1,
+      tokenId: tokenId,
       email,
       username,
     }),
     generateToken({
       type: 'refresh_token',
-      tokenId: 1,
-      rotationCounter: 0,
+      tokenId: tokenId,
+      rotationCounter: token.rotationCounter,
     }),
   ]);
 
@@ -80,16 +91,62 @@ export function setTokenCookie(ctx: Context, tokens: Tokens) {
   });
 }
 
-// export async function refresh(ctx: Context, refreshToken: string) {
-//   try {
-//     const decoded = await validateToken<RefreshTokenPayload>(refreshToken);
-//     const user = await db.user.findUnique({
-//       where: {
-//         id: decoded.
-//       }
-//     })
-//   }
-// }
+export async function refresh(ctx: Context, refreshToken: string) {
+  try {
+    if (!refreshToken) {
+      ctx.status = 401;
+      ctx.body = {
+        statusCode: 401,
+        message: 'Failed to refresh token',
+        name: 'RefreshTokenError',
+      };
+      return;
+    }
+
+    const decoded = await validateToken<RefreshTokenPayload>(refreshToken);
+    const tokenItem = await db.token.findUnique({
+      where: {
+        id: decoded.tokenId,
+      },
+      include: {
+        user: true,
+      },
+    });
+    if (!tokenItem) {
+      ctx.status = 401;
+      ctx.body = {
+        statusCode: 401,
+        message: 'Token not found',
+        name: 'NotFoundTokenError',
+      };
+      return;
+    }
+
+    if (tokenItem.blocked) {
+      ctx.status = 401;
+      ctx.body = {
+        statusCode: 401,
+        message: 'Token is blocked',
+        name: 'BlockedTokenError',
+      };
+      return;
+    }
+
+    tokenItem.rotationCounter += 1;
+    await db.token.update({
+      where: {
+        id: tokenItem.id,
+      },
+      data: {
+        rotationCounter: tokenItem.rotationCounter,
+      },
+    });
+
+    return generateTokens(tokenItem.user, tokenItem);
+  } catch (e) {
+    throw e;
+  }
+}
 
 export function resetTokenCookie(ctx: Context) {
   ctx.cookies.set('access_token', '', {

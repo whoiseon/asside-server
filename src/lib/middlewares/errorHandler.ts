@@ -1,6 +1,6 @@
-import { Context, Next } from 'koa';
+import { Context, Middleware, Next } from 'koa';
 
-export default async (ctx: Context, next: Next) => {
+const errorHandler: Middleware = async (ctx: Context, next: Next) => {
   try {
     await next();
   } catch (error: any) {
@@ -11,3 +11,5 @@ export default async (ctx: Context, next: Next) => {
     };
   }
 };
+
+export default errorHandler;
