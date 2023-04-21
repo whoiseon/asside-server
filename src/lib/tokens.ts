@@ -91,63 +91,6 @@ export function setTokenCookie(ctx: Context, tokens: Tokens) {
   });
 }
 
-export async function refresh(ctx: Context, refreshToken: string) {
-  try {
-    if (!refreshToken) {
-      ctx.status = 401;
-      ctx.body = {
-        statusCode: 401,
-        message: 'Failed to refresh token',
-        name: 'RefreshTokenError',
-      };
-      return;
-    }
-
-    const decoded = await validateToken<RefreshTokenPayload>(refreshToken);
-    const tokenItem = await db.token.findUnique({
-      where: {
-        id: decoded.tokenId,
-      },
-      include: {
-        user: true,
-      },
-    });
-    if (!tokenItem) {
-      ctx.status = 401;
-      ctx.body = {
-        statusCode: 401,
-        message: 'Token not found',
-        name: 'NotFoundTokenError',
-      };
-      return;
-    }
-
-    if (tokenItem.blocked) {
-      ctx.status = 401;
-      ctx.body = {
-        statusCode: 401,
-        message: 'Token is blocked',
-        name: 'BlockedTokenError',
-      };
-      return;
-    }
-
-    tokenItem.rotationCounter += 1;
-    await db.token.update({
-      where: {
-        id: tokenItem.id,
-      },
-      data: {
-        rotationCounter: tokenItem.rotationCounter,
-      },
-    });
-
-    return generateTokens(tokenItem.user, tokenItem);
-  } catch (e) {
-    throw e;
-  }
-}
-
 export function resetTokenCookie(ctx: Context) {
   ctx.cookies.set('access_token', '', {
     maxAge: 0,

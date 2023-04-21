@@ -1,6 +1,12 @@
 import Router from '@koa/router';
 import { LoginParams, RegisterParams } from './types';
-import { generateTokens, setTokenCookie, Tokens } from 'src/lib/tokens';
+import {
+  generateTokens,
+  RefreshTokenPayload,
+  setTokenCookie,
+  Tokens,
+  validateToken,
+} from 'src/lib/tokens';
 import db from 'src/lib/database';
 import bcrypt from 'bcrypt';
 
@@ -88,6 +94,79 @@ auth.post('/register/local', async ctx => {
   ctx.body = {
     registered: !!createdUser,
   };
+});
+
+auth.post('/refresh', async ctx => {
+  const body = ctx.request.body as Tokens;
+  const refreshToken = ctx.cookies.get('refresh_token') ?? body.refreshToken ?? '';
+  if (!refreshToken) {
+    ctx.status = 401;
+    ctx.body = {
+      statusCode: 401,
+      message: 'Failed to refresh token',
+      name: 'RefreshTokenError',
+    };
+    return;
+  }
+  const { tokenId, rotationCounter } = await validateToken<RefreshTokenPayload>(refreshToken);
+  const tokenItem = await db.token.findUnique({
+    where: {
+      id: tokenId,
+    },
+    include: {
+      user: true,
+    },
+  });
+  if (!tokenItem) {
+    ctx.status = 401;
+    ctx.body = {
+      statusCode: 401,
+      message: 'Token not found',
+      name: 'NotFoundTokenError',
+    };
+    return;
+  }
+  if (tokenItem.blocked) {
+    ctx.status = 401;
+    ctx.body = {
+      statusCode: 401,
+      message: 'Token is blocked',
+      name: 'BlockedTokenError',
+    };
+    return;
+  }
+
+  if (tokenItem.rotationCounter !== rotationCounter) {
+    await db.token.update({
+      where: {
+        id: tokenId,
+      },
+      data: {
+        blocked: true,
+      },
+    });
+    ctx.status = 401;
+    ctx.body = {
+      statusCode: 401,
+      message: 'Token is blocked',
+      name: 'BlockedTokenError',
+    };
+    return;
+  }
+
+  tokenItem.rotationCounter += 1;
+  await db.token.update({
+    where: {
+      id: tokenItem.id,
+    },
+    data: {
+      rotationCounter: tokenItem.rotationCounter,
+    },
+  });
+
+  const tokens = await generateTokens(tokenItem.user, tokenItem);
+  setTokenCookie(ctx, tokens);
+  ctx.body = tokens;
 });
 
 export default auth;
