@@ -83,10 +83,12 @@ export function setTokenCookie(ctx: Context, tokens: Tokens) {
   const { accessToken, refreshToken } = tokens;
   ctx.cookies.set('access_token', accessToken, {
     maxAge: 1000 * 60 * 60,
+    httpOnly: false,
     path: '/',
   });
   ctx.cookies.set('refresh_token', refreshToken, {
     maxAge: 1000 * 60 * 60 * 24 * 7,
+    httpOnly: false,
     path: '/',
   });
 }

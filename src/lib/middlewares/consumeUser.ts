@@ -4,15 +4,20 @@ import { JsonWebTokenError } from 'jsonwebtoken';
 
 const consumeUser: Middleware = async (ctx: Context, next: Next) => {
   ctx.state.isExpiredToken = false;
-  if (ctx.path.includes('/auth/logout') || ctx.path.includes('/auth/register')) return next(); // skip this middleware for logout route
+  if (ctx.path.includes('/auth/logout') || ctx.path.includes('/auth/signup')) return next(); // skip this middleware for logout route
+
+  const { authorization } = ctx.request.headers;
 
   let accessToken: string | undefined = ctx.cookies.get('access_token');
   const refreshToken: string | undefined = ctx.cookies.get('refresh_token');
 
-  const { authorization } = ctx.request.headers;
-
   if (!accessToken && authorization) {
     accessToken = authorization.split(' ')[1];
+  }
+
+  if (refreshToken && !accessToken) {
+    ctx.state.isExpiredToken = true;
+    return next();
   }
 
   try {
@@ -35,20 +40,6 @@ const consumeUser: Middleware = async (ctx: Context, next: Next) => {
   }
 
   return next();
-
-  // try {
-  //   if (!accessToken) {
-  //     throw new Error('NoAccessToken');
-  //   }
-  //   const accessTokenData = await validateToken<AccessTokenPayload>(accessToken);
-  //
-  //   ctx.state.userId = accessTokenData.userId;
-  //   // refresh token when life < 30 mins
-  //   const diff = accessTokenData.exp * 3000 - new Date().getTime();
-  //   if (diff < 1000 * 60 * 30 && refreshToken) {
-  //     await
-  //   }
-  // }
 };
 
 export default consumeUser;

@@ -5,8 +5,8 @@ const requireAuth: Middleware = async (ctx: Context, next: Next) => {
     ctx.status = 401;
     ctx.body = {
       statusCode: 401,
-      message: 'Token is expired',
-      name: 'TokenExpiredError',
+      message: 'Unauthorized',
+      name: 'UnauthorizedError',
       payload: {
         isExpiredToken: true,
       },

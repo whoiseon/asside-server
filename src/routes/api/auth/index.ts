@@ -3,6 +3,7 @@ import { LoginParams, RegisterParams } from './types';
 import {
   generateTokens,
   RefreshTokenPayload,
+  resetTokenCookie,
   setTokenCookie,
   Tokens,
   validateToken,
@@ -58,7 +59,7 @@ auth.post('/login/local', async ctx => {
   };
 });
 
-auth.post('/register/local', async ctx => {
+auth.post('/signup/local', async ctx => {
   const { username, email, password } = ctx.request.body as RegisterParams;
   const exists = await db.user.findFirst({
     where: {
@@ -77,7 +78,7 @@ auth.post('/register/local', async ctx => {
     ctx.body = {
       statusCode: 409,
       message: 'Username or email already exists',
-      name: 'UsernameAlreadyExists',
+      name: 'ExistsError',
       payload: email === exists.email ? 'email' : 'username',
     };
     return;
@@ -167,6 +168,11 @@ auth.post('/refresh', async ctx => {
   const tokens = await generateTokens(tokenItem.user, tokenItem);
   setTokenCookie(ctx, tokens);
   ctx.body = tokens;
+});
+
+auth.post('/logout', async ctx => {
+  resetTokenCookie(ctx);
+  ctx.status = 204;
 });
 
 export default auth;
