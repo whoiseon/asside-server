@@ -18,6 +18,7 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   profile      String?
+  description  String?
 
   Token        Token[]      @relation("UserTokens")
 
