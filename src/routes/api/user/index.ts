@@ -27,9 +27,9 @@ user.get('/', async ctx => {
     return;
   }
 
-  const { passwordHash, ...rest } = user;
+  const { passwordHash, ...userInfo } = user;
 
-  ctx.body = rest;
+  ctx.body = userInfo;
 });
 
 export default user;
