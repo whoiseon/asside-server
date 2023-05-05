@@ -4,11 +4,11 @@ import db from 'src/lib/database';
 
 const user = new Router();
 
-user.get('/', async ctx => {
-  const { userId } = ctx.request.body as GetUserBody;
+user.get('/:username', async ctx => {
+  const { username } = ctx.params;
   const user = await db.user.findUnique({
     where: {
-      id: Number(userId),
+      username,
     },
     include: {
       teams: true,
