@@ -1,3 +1,4 @@
 export interface GetUserBody {
-  userId: string;
+  username?: string;
+  tab?: 'projects' | 'teams' | 'studyGroups';
 }

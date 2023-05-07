@@ -1,18 +1,20 @@
 import Router from '@koa/router';
 import { GetUserBody } from 'src/routes/api/user/types';
 import db from 'src/lib/database';
+import { Team } from '@prisma/client';
 
 const user = new Router();
 
-user.get('/:username', async ctx => {
-  const { username } = ctx.params;
+user.get('/', async ctx => {
+  const { username } = ctx.query as GetUserBody;
+
   const user = await db.user.findUnique({
     where: {
       username,
     },
     include: {
-      teams: true,
       projects: true,
+      teams: true,
       studyGroups: true,
     },
   });
@@ -26,7 +28,6 @@ user.get('/:username', async ctx => {
     };
     return;
   }
-
   const { passwordHash, ...userInfo } = user;
 
   ctx.body = userInfo;
