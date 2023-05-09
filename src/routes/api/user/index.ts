@@ -1,7 +1,6 @@
 import Router from '@koa/router';
 import { GetUserBody } from 'src/routes/api/user/types';
 import db from 'src/lib/database';
-import { Team } from '@prisma/client';
 
 const user = new Router();
 
