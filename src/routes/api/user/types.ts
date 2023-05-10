@@ -1,4 +1,8 @@
-export interface GetUserBody {
+export interface GetUserQuery {
   username?: string;
-  tab?: 'projects' | 'teams' | 'studyGroups';
+}
+
+export interface GetUserProfileBody {
+  username?: string;
+  description?: string;
 }
