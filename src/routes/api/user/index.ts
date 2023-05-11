@@ -12,11 +12,6 @@ user.get('/', async ctx => {
     where: {
       username,
     },
-    include: {
-      projects: true,
-      teams: true,
-      studyGroups: true,
-    },
   });
 
   if (!user) {
@@ -31,6 +26,81 @@ user.get('/', async ctx => {
   const { passwordHash, ...userInfo } = user;
 
   ctx.body = userInfo;
+});
+
+user.get('/projects', async ctx => {
+  const { username } = ctx.query as GetUserQuery;
+
+  const user = await db.user.findUnique({
+    where: {
+      username,
+    },
+    include: {
+      projects: true,
+    },
+  });
+
+  if (!user) {
+    ctx.status = 404;
+    ctx.body = {
+      statusCode: 404,
+      message: 'User not found',
+      name: 'NotFoundError',
+    };
+    return;
+  }
+
+  ctx.body = user.projects;
+});
+
+user.get('/teams', async ctx => {
+  const { username } = ctx.query as GetUserQuery;
+
+  const user = await db.user.findUnique({
+    where: {
+      username,
+    },
+    include: {
+      teams: true,
+    },
+  });
+
+  if (!user) {
+    ctx.status = 404;
+    ctx.body = {
+      statusCode: 404,
+      message: 'User not found',
+      name: 'NotFoundError',
+    };
+    return;
+  }
+
+  ctx.body = user.teams;
+});
+
+user.get('/studygroups', async ctx => {
+  const { username } = ctx.query as GetUserQuery;
+
+  const user = await db.user.findUnique({
+    where: {
+      username,
+    },
+    include: {
+      studyGroups: true,
+    },
+  });
+
+  if (!user) {
+    ctx.status = 404;
+    ctx.body = {
+      statusCode: 404,
+      message: 'User not found',
+      name: 'NotFoundError',
+    };
+    return;
+  }
+
+  ctx.body = user.studyGroups;
 });
 
 user.patch('/profile', requireAuth, async ctx => {
