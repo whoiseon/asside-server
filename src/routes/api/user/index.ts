@@ -2,6 +2,7 @@ import Router from '@koa/router';
 import { GetUserProfileBody, GetUserQuery } from 'src/routes/api/user/types';
 import db from 'src/lib/database';
 import requireAuth from 'src/lib/middlewares/requireAuth';
+import { generateTokens, setTokenCookie } from 'src/lib/tokens';
 
 const user = new Router();
 
@@ -131,17 +132,21 @@ user.patch('/profile', requireAuth, async ctx => {
       return;
     }
 
-    await db.user.update({
+    const updatedUser = await db.user.update({
       where: {
         id,
       },
       data: {
         username,
+        updatedAt: new Date(),
       },
     });
 
     updatedResult.username = true;
     ctx.state.user.username = username;
+
+    const tokens = await generateTokens(updatedUser);
+    setTokenCookie(ctx, tokens);
   }
 
   // change description
@@ -152,6 +157,7 @@ user.patch('/profile', requireAuth, async ctx => {
       },
       data: {
         description,
+        updatedAt: new Date(),
       },
     });
 
